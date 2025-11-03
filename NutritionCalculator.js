@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // NutritionCalculator.js
 
 import React, { useState } from 'react';
@@ -31,15 +32,37 @@ const NutritionCalculator = ({ session, onProfileCreated }) => {
       const dataToSave = {
         ...userData,
         user_id: session.user.id,
+=======
+// ... (import 및 state 설정 부분은 동일)
+import { supabase } from './supabaseClient';
+
+// ⭐️ 1. App.js로부터 'session' prop 받기
+const NutritionCalculator = ({ session }) => { 
+  // ... (state들)
+  
+  const saveUserDataToSupabase = async (userData) => {
+    setIsLoading(true);
+    try {
+      // ⭐️ 2. userData 객체에 user_id 추가
+      // session.user.id가 현재 로그인한 사용자의 고유 ID입니다.
+      const dataToSave = {
+        ...userData,
+        user_id: session.user.id 
+>>>>>>> cd27b3cba29970ebcfa97f889c71d8326a2725a5
       };
 
       const { data, error } = await supabase
         .from('user_profiles')
+<<<<<<< HEAD
         .insert([dataToSave]);
+=======
+        .insert([dataToSave]); // user_id가 포함된 객체 전송
+>>>>>>> cd27b3cba29970ebcfa97f889c71d8326a2725a5
 
       if (error) throw error;
 
       console.log('Supabase 저장 성공:', data);
+<<<<<<< HEAD
       alert('프로필이 성공적으로 저장되었습니다!');
 
       // ⭐️ [수정] 저장이 성공해도 여기서 화면을 넘기지 않습니다.
@@ -47,6 +70,10 @@ const NutritionCalculator = ({ session, onProfileCreated }) => {
       //   onProfileCreated();
       // }
       
+=======
+      alert('정보가 성공적으로 저장되었습니다!');
+
+>>>>>>> cd27b3cba29970ebcfa97f889c71d8326a2725a5
     } catch (error) {
       console.error('Supabase 저장 중 오류:', error.message);
       alert(`저장에 실패했습니다: ${error.message}`);
@@ -56,6 +83,7 @@ const NutritionCalculator = ({ session, onProfileCreated }) => {
   };
 
   const calculateGoalCalories = () => {
+<<<<<<< HEAD
     // (계산 로직은 동일...)
     const h = parseFloat(height);
     const cw = parseFloat(currentWeight);
@@ -99,10 +127,30 @@ const NutritionCalculator = ({ session, onProfileCreated }) => {
     setTdee(calculatedTdee.toFixed(2));
     setGoalCalories(calculatedGoalCalories.toFixed(2));
 
+=======
+    // ... (계산 로직 동일)
+
+    const userData = {
+      gender: gender,
+      age: parseInt(age),
+      height: parseFloat(height),
+      current_weight: parseFloat(currentWeight),
+      goal_weight: parseFloat(goalWeight),
+      activity_level: activityLevel,
+      bmr: parseFloat(bmr),
+      tdee: parseFloat(tdee),
+      goal_calories: parseFloat(goalCalories),
+      // ⭐️ 3. user_id는 saveUserDataToSupabase 함수에서 추가되므로 여기선 제외
+    };
+    
+    // ... (State 설정)
+    
+>>>>>>> cd27b3cba29970ebcfa97f889c71d8326a2725a5
     saveUserDataToSupabase(userData);
   };
 
   return (
+<<<<<<< HEAD
     <ScrollView style={styles.container}>
       {/* ... (성별, 나이, 키, 체중 등 입력 필드는 모두 동일) ... */}
       <View style={styles.row}>
@@ -200,11 +248,25 @@ const NutritionCalculator = ({ session, onProfileCreated }) => {
           </View>
         </View>
       )}
+=======
+    // ... (JSX 렌더링 부분 동일)
+    // ⭐️ (선택 사항) 로그아웃 버튼 추가
+    <ScrollView style={styles.container}>
+      {/* ... (모든 입력 필드 및 계산 버튼) ... */}
+      
+      {/* <Button 
+        title="로그아웃" 
+        onPress={() => supabase.auth.signOut()} 
+        color="red"
+      /> 
+      */}
+>>>>>>> cd27b3cba29970ebcfa97f889c71d8326a2725a5
     </ScrollView>
   );
 };
 
 // ... (스타일 시트 동일)
+<<<<<<< HEAD
 const styles = StyleSheet.create({
   // ... (container, row, label, inputWrapper, input, pickerContainer, picker 동일)
   container: {
@@ -286,5 +348,7 @@ const styles = StyleSheet.create({
     width: '80%', // 버튼 너비
   },
 });
+=======
+>>>>>>> cd27b3cba29970ebcfa97f889c71d8326a2725a5
 
 export default NutritionCalculator;
