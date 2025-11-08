@@ -265,6 +265,7 @@ const MealLogger = ({ session }) => {
             <Text style={styles.emptyText}>기록이 없습니다.</Text>
           )}
           
+          {/* ⭐️ 올바르게 수정된 로그아웃 버튼 */}
           <View style={styles.logoutButton}> 
             <Button
               title="로그아웃"
