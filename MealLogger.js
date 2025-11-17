@@ -20,7 +20,7 @@ import { supabase } from './supabaseClient';
 import { Picker } from '@react-native-picker/picker';
 
 // 헬퍼 함수
-export const getFormattedDate = (date) => { // ⭐️ export 추가
+export const getFormattedDate = (date) => {
   const year = date.getFullYear();
   const month = (date.getMonth() + 1).toString().padStart(2, '0');
   const day = date.getDate().toString().padStart(2, '0');
@@ -28,7 +28,6 @@ export const getFormattedDate = (date) => { // ⭐️ export 추가
 };
 
 const MealLogger = ({ session }) => {
-  // ... (모든 state 선언은 동일)
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
   const [logs, setLogs] = useState([]);
@@ -51,8 +50,10 @@ const MealLogger = ({ session }) => {
   const [customCarbs, setCustomCarbs] = useState('');
   const [customFat, setCustomFat] = useState('');
   const [isSavingCustomFood, setIsSavingCustomFood] = useState(false);
-
-  // --- 함수들 (수정 없음) ---
+  
+  const [mfdsPageNo, setMfdsPageNo] = useState(1);
+  const [mfdsHasMore, setMfdsHasMore] = useState(false);
+  const [isSearchingMore, setIsSearchingMore] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -63,15 +64,15 @@ const MealLogger = ({ session }) => {
     setLogs([]); 
     const dateString = getFormattedDate(selectedDate);
     try {
-      if (!profile) {
-        const { data: profileData, error: profileError } = await supabase
-          .from('user_profiles')
-          .select('goal_calories')
-          .eq('user_id', session.user.id)
-          .single();
-        if (profileError && profileError.code !== 'PGRST116') throw profileError;
-        if (profileData) setProfile(profileData);
-      }
+      const { data: profileData, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('goal_calories, recommend_carbs, recommend_protein, recommend_fat')
+        .eq('user_id', session.user.id)
+        .single();
+      
+      if (profileError && profileError.code !== 'PGRST116') throw profileError;
+      if (profileData) setProfile(profileData);
+      
       const { data: logsData, error: logsError } = await supabase
         .from('meal_logs')
         .select('*')
@@ -136,26 +137,45 @@ const MealLogger = ({ session }) => {
   };
   const isToday = getFormattedDate(selectedDate) === getFormattedDate(new Date());
 
-  // --- ⭐️ [수정] 2. 음식 검색 함수 (데이터 경로 수정) ---
   const handleSearchFood = async (query) => {
     setSearchQuery(query);
     if (query.length < 2) {
       setSearchResults([]);
+      setMfdsHasMore(false);
       return;
     }
     setIsSearching(true);
+    setMfdsPageNo(1);
 
-    // ⭐️ 사용자님의 API 키를 적용했습니다.
     const MFDS_API_KEY = 'cd9aec01b84399f9af32a83bd4a8ca8284be3e82202c1bd8c56ea667057325f6'; 
-    
     const decodedServiceKey = decodeURIComponent(MFDS_API_KEY);
-    const mfdsUrl = `https://apis.data.go.kr/1471000/FoodNtrCpntDbInfo02/getFoodNtrCpntDbInq02`;
+    const mfdsUrl = `https://api.data.go.kr/openapi/tn_pubr_public_nutri_info_api`;
 
-    let customResult = { data: [], error: null };
+    let customData = [];
+    let mfdsData = [];
 
     try {
-      const [mfdsResponse, _customResult] = await Promise.all([
-        axios.get(mfdsUrl, {
+      try {
+        const { data: customResult, error: customError } = await supabase
+          .from('user_custom_foods')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .ilike('food_name', `%${query}%`)
+          .limit(5);
+
+        if (customError) throw customError; 
+        
+        customData = (customResult || []).map(item => ({
+          ...item,
+          maker_name: '나만의 음식'
+        }));
+        
+      } catch (supaError) {
+        console.error("--- Supabase 검색 오류 ---", supaError);
+      }
+
+      try {
+        const mfdsResponse = await axios.get(mfdsUrl, {
           params: {
             serviceKey: decodedServiceKey,
             pageNo: 1,
@@ -163,74 +183,98 @@ const MealLogger = ({ session }) => {
             type: 'json',
             FOOD_NM_KR: query
           }
-        }),
-        supabase
-          .from('user_custom_foods')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .ilike('food_name', `%${query}%`)
-          .limit(5)
-      ]);
-      
-      customResult = _customResult;
-      
-      const header = mfdsResponse.data?.header;
-      
-      if (header && header.resultCode === '00') {
-        let mfdsData = [];
-        // ⭐️ [수정] 4. 'body.items' (배열)가 존재하는지 확인
-        if (mfdsResponse.data.body && mfdsResponse.data.body.items) {
-          
-          // ⭐️ [수정] 5. 'items'는 이미 배열이므로 바로 사용합니다.
-          const items = mfdsResponse.data.body.items; 
-          
-          mfdsData = items.map(item => ({
-            id: `mfds-${item.FOOD_CD}`,
-            food_name: item.FOOD_NM_KR,
-            maker_name: item.MAKER_NM || '',
-            calories: parseFloat(item.AMT_NUM1) || 0,
-            protein: parseFloat(item.AMT_NUM3) || 0,
-            fat: parseFloat(item.AMT_NUM4) || 0,
-            carbs: parseFloat(item.AMT_NUM6) || 0,
-          }));
+        });
+        
+        const header = mfdsResponse.data?.response?.header;
+        if (header && header.resultCode === '00') {
+          if (mfdsResponse.data.response.body && mfdsResponse.data.response.body.items) {
+            const items = [].concat(mfdsResponse.data.response.body.items || []);
+            mfdsData = items.map(item => ({
+              id: `mfds-${item.foodCd}`,
+              food_name: item.foodNm,
+              maker_name: item.mkrNm || '',
+              calories: parseFloat(item.enerc) || 0,
+              protein: parseFloat(item.prot) || 0,
+              fat: parseFloat(item.fatce) || 0,
+              carbs: parseFloat(item.chocdf) || 0,
+            }));
+            const totalCount = parseInt(mfdsResponse.data.response.body.totalCount) || 0;
+            setMfdsHasMore((1 * 20) < totalCount);
+          } else {
+            setMfdsHasMore(false);
+          }
+        } else {
+          setMfdsHasMore(false);
+          console.warn('식약처 API가 오류 또는 "결과 없음"을 반환했습니다:', header?.resultMsg);
         }
-        
-        const customData = (customResult.data || []).map(item => ({
-          ...item,
-          maker_name: '나만의 음식'
-        }));
-        
-        const combinedResults = [...customData, ...mfdsData];
-        setSearchResults(combinedResults);
-
-      } else {
-        console.warn('식약처 API가 오류 또는 "결과 없음"을 반환했습니다:', header?.resultMsg);
-        const customData = (customResult.data || []).map(item => ({
-          ...item,
-          maker_name: '나만의 음식'
-        }));
-        setSearchResults(customData);
+      } catch (apiError) {
+        console.error("--- 식약처 API 네트워크/Axios 오류 ---", apiError.message);
+        setMfdsHasMore(false);
       }
+      
+      const combinedResults = [...customData, ...mfdsData];
+      setSearchResults(combinedResults);
 
     } catch (error) {
-      console.error("--- API 네트워크/Axios 오류 ---");
-      if (error.response) {
-        console.error("데이터:", JSON.stringify(error.response.data, null, 2));
-        console.error("상태 코드:", error.response.status);
-      } else if (error.request) {
-        console.error("요청:", error.request);
-      } else {
-        console.error('오류 메시지:', error.message);
-      }
-      console.error("--- --------------------- ---");
-      Alert.alert('검색 오류', 'API 서버 연결에 실패했습니다.');
-      const customData = (customResult.data || []).map(item => ({
-        ...item,
-        maker_name: '나만의 음식'
-      }));
-      setSearchResults(customData);
+      console.error("--- 전체 검색 로직 오류 ---", error);
+      Alert.alert('검색 오류', '데이터를 불러오는 중 오류가 발생했습니다.');
+      setSearchResults([]);
     } finally {
       setIsSearching(false);
+    }
+  };
+  
+  const handleLoadMore = async () => {
+    if (isSearchingMore || !mfdsHasMore) return;
+    setIsSearchingMore(true);
+    const nextPage = mfdsPageNo + 1;
+
+    const MFDS_API_KEY = 'cd9aec01b84399f9af32a83bd4a8ca8284be3e82202c1bd8c56ea667057325f6'; 
+    const decodedServiceKey = decodeURIComponent(MFDS_API_KEY);
+    const mfdsUrl = `https://api.data.go.kr/openapi/tn_pubr_public_nutri_info_api`;
+
+    try {
+      const mfdsResponse = await axios.get(mfdsUrl, {
+        params: {
+          serviceKey: decodedServiceKey,
+          pageNo: nextPage,
+          numOfRows: 20,
+          type: 'json',
+          FOOD_NM_KR: searchQuery
+        }
+      });
+      
+      const header = mfdsResponse.data?.response?.header;
+      
+      if (header && header.resultCode === '00') {
+        if (mfdsResponse.data.response.body && mfdsResponse.data.response.body.items) {
+          const items = [].concat(mfdsResponse.data.response.body.items || []);
+          const newMfdsData = items.map(item => ({
+            id: `mfds-${item.foodCd}`,
+            food_name: item.foodNm,
+            maker_name: item.mkrNm || '',
+            calories: parseFloat(item.enerc) || 0,
+            protein: parseFloat(item.prot) || 0,
+            fat: parseFloat(item.fatce) || 0,
+            carbs: parseFloat(item.chocdf) || 0,
+          }));
+          
+          setSearchResults(prevResults => [...prevResults, ...newMfdsData]);
+          setMfdsPageNo(nextPage);
+
+          const totalCount = parseInt(mfdsResponse.data.response.body.totalCount) || 0;
+          setMfdsHasMore((nextPage * 20) < totalCount);
+        } else {
+          setMfdsHasMore(false);
+        }
+      } else {
+        setMfdsHasMore(false);
+      }
+    } catch (error) {
+      console.error("더 불러오기 오류:", error);
+      setMfdsHasMore(false);
+    } finally {
+      setIsSearchingMore(false);
     }
   };
 
@@ -282,21 +326,24 @@ const MealLogger = ({ session }) => {
     }
   };
 
-  // --- 계산 (동일) ---
   const totalCalories = logs.reduce((sum, log) => sum + (log.calories || 0), 0);
   const totalProtein = logs.reduce((sum, log) => sum + (log.protein || 0), 0);
   const totalCarbs = logs.reduce((sum, log) => sum + (log.carbs || 0), 0);
   const totalFat = logs.reduce((sum, log) => sum + (log.fat || 0), 0);
-  const goalCaloriesValue = parseFloat(profile?.goal_calories) || 1; // 0으로 나누는 것 방지
-  let progressPercent = (totalCalories / goalCaloriesValue) * 100;
-  const progressBarColor = progressPercent > 100 ? '#F44336' : '#007bff'; // 100% 넘으면 빨간색
-  progressPercent = Math.min(progressPercent, 100); // 시각적 표시는 100%에서 멈춤
-  
+
+  const goalCalories = profile?.goal_calories || 1;
+  const goalCarbs = profile?.recommend_carbs || 0;
+  const goalProtein = profile?.recommend_protein || 0;
+  const goalFat = profile?.recommend_fat || 0;
+
+  let progressPercent = (totalCalories / Math.max(goalCalories, 1)) * 100; 
+  const progressBarColor = progressPercent > 100 ? '#F44336' : '#007bff';
+  progressPercent = Math.min(progressPercent, 100);
+
   if (loading && !profile) {
     return <ActivityIndicator size="large" style={styles.loading} />;
   }
   
-  // --- 모달 렌더링 함수 (동일) ---
   const renderModalContent = () => {
     if (modalMode === 'add') {
       return (
@@ -315,15 +362,11 @@ const MealLogger = ({ session }) => {
       );
     }
     return (
-      // ⭐️ [수정] Fragment(<>)를 <View style={{ flex: 1 }}>로 변경
       <View style={{ flex: 1 }}>
-        
-        {/* ⭐️ [신규] 헤더 영역 (제목 + 새 음식 추가 버튼) */}
         <View style={styles.modalHeaderContainer}>
           <Text style={styles.modalHeader}>음식 검색</Text>
           <Button title="➕ 새 음식" onPress={() => setModalMode('add')} />
         </View>
-
         <TextInput
           style={styles.searchInput}
           placeholder="음식 이름 검색 (예: 닭가슴살)"
@@ -331,12 +374,10 @@ const MealLogger = ({ session }) => {
           onChangeText={handleSearchFood}
         />
         {isSearching && <ActivityIndicator />}
-        
         <FlatList
-          style={{ flex: 1 }} // ⭐️ 이 스타일이 중요합니다!
+          style={{ flex: 1 }} 
           data={searchResults}
           keyExtractor={(item) => `${item.id}-${item.food_name}`}
-          
           renderItem={({ item }) => (
             <TouchableOpacity style={styles.searchItem} onPress={() => handleSelectFood(item)}>
               <Text style={styles.searchItemName}>
@@ -354,15 +395,16 @@ const MealLogger = ({ session }) => {
               </Text>
             </TouchableOpacity>
           )}
-          
           ListEmptyComponent={
             <View style={styles.emptySearchContainer}>
               {!isSearching && searchQuery.length > 1 && (
                 <Text style={styles.emptyText}>검색 결과가 없습니다.</Text>
               )}
-              {/* '새 음식 추가하기' 버튼이 위로 이동했습니다. */}
             </View>
           }
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={ isSearchingMore ? <ActivityIndicator size="small" color="#0000ff" /> : null }
         />
         <Button title="닫기" onPress={() => setModalVisible(false)} />
       </View>
@@ -370,18 +412,11 @@ const MealLogger = ({ session }) => {
   };
 
   return (
-    <>
-      <Modal
-        visible={modalVisible}
-        animationType="slide"
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <SafeAreaView style={styles.modalContainer}>
-          {renderModalContent()}
-        </SafeAreaView>
+    <SafeAreaView style={styles.safeArea}>
+      <Modal visible={modalVisible} animationType="slide" onRequestClose={() => setModalVisible(false)}>
+        <SafeAreaView style={styles.modalContainer}>{renderModalContent()}</SafeAreaView>
       </Modal>
 
-      {/* --- 메인 화면 FlatList --- */}
       <FlatList
         style={styles.container}
         data={logs}
@@ -401,14 +436,18 @@ const MealLogger = ({ session }) => {
         )}
         ListHeaderComponent={
           <>
-            {/* --- ⭐️ [수정] 2. 요약 카드 (프로그래스 바 추가) --- */}
             <View style={styles.summaryContainer}>
               <View style={styles.dateNavigator}>
                 <Button title="◀ 이전" onPress={handlePrevDay} />
                 <Text style={styles.header}>
                   {getFormattedDate(selectedDate)}
                 </Text>
-                <Button title="다음 ▶" onPress={handleNextDay} disabled={isToday} />
+                <Button 
+                  title="다음 ▶" 
+                  onPress={handleNextDay} 
+                  disabled={isToday} 
+                  color={isToday ? undefined : "#007bff"} 
+                />
               </View>
               
               {loading ? (
@@ -416,13 +455,9 @@ const MealLogger = ({ session }) => {
               ) : (
                 <>
                   <Text style={styles.calorieSummary}>
-                    {totalCalories} <Text style={{fontSize: 20}}>kcal</Text>
-                  </Text>
-                  <Text style={styles.calorieGoal}>
-                    (목표: {profile?.goal_calories || 0} kcal)
+                    {totalCalories} <Text style={styles.calorieGoalText}>/ {goalCalories} kcal</Text>
                   </Text>
                   
-                  {/* ⭐️ [신규] 3. 프로그래스 바 */}
                   <View style={styles.progressBarContainer}>
                     <View style={[
                       styles.progressBar,
@@ -434,15 +469,30 @@ const MealLogger = ({ session }) => {
                   </View>
 
                   <View style={styles.macroSummary}>
-                    <Text style={styles.macroText}>단백질: {totalProtein}g</Text>
-                    <Text style={styles.macroText}>탄수화물: {totalCarbs}g</Text>
-                    <Text style={styles.macroText}>지방: {totalFat}g</Text>
+                    <View style={styles.macroItem}>
+                      <Text style={styles.macroLabel}>탄수화물</Text>
+                      {/* ⭐️ [수정] 폰트 크기 14, 굵기 bold로 변경 */}
+                      <Text style={styles.macroValue}>
+                        {totalCarbs} / {goalCarbs}g
+                      </Text>
+                    </View>
+                    <View style={styles.macroItem}>
+                      <Text style={styles.macroLabel}>단백질</Text>
+                      <Text style={styles.macroValue}>
+                        {totalProtein} / {goalProtein}g
+                      </Text>
+                    </View>
+                    <View style={styles.macroItem}>
+                      <Text style={styles.macroLabel}>지방</Text>
+                      <Text style={styles.macroValue}>
+                        {totalFat} / {goalFat}g
+                      </Text>
+                    </View>
                   </View>
                 </>
               )}
             </View>
 
-            {/* --- ⭐️ [수정] 4. 식단 추가 폼 (주석 복원) --- */}
             <View style={styles.formContainer}>
               <View style={styles.formHeader}>
                 <Text style={styles.subHeader}>
@@ -450,64 +500,27 @@ const MealLogger = ({ session }) => {
                 </Text>
                 <Button title="🔍 음식 검색" onPress={() => setModalVisible(true)} />
               </View>
-              <TextInput
-                style={styles.input}
-                placeholder="음식 이름 (필수)"
-                value={foodName}
-                onChangeText={setFoodName}
-              />
+              <TextInput style={styles.input} placeholder="음식 이름 (필수)" value={foodName} onChangeText={setFoodName} />
               <View style={styles.row}>
-                <TextInput
-                  style={[styles.input, styles.inputHalf]}
-                  placeholder="칼로리 (필수)"
-                  value={calories}
-                  onChangeText={setCalories}
-                  keyboardType="numeric"
-                />
-                <TextInput
-                  style={[styles.input, styles.inputHalf]}
-                  placeholder="단백질(g)"
-                  value={protein}
-                  onChangeText={setProtein}
-                  keyboardType="numeric"
-                />
+                <TextInput style={[styles.input, styles.inputHalf]} placeholder="칼로리 (필수)" value={calories} onChangeText={setCalories} keyboardType="numeric" />
+                <TextInput style={[styles.input, styles.inputHalf]} placeholder="단백질(g)" value={protein} onChangeText={setProtein} keyboardType="numeric" />
               </View>
               <View style={styles.row}>
-                <TextInput
-                  style={[styles.input, styles.inputHalf]}
-                  placeholder="탄수화물(g)"
-                  value={carbs}
-                  onChangeText={setCarbs}
-                  keyboardType="numeric"
-                />
-                <TextInput
-                  style={[styles.input, styles.inputHalf]}
-                  placeholder="지방(g)"
-                  value={fat}
-                  onChangeText={setFat}
-                  keyboardType="numeric"
-                />
+                <TextInput style={[styles.input, styles.inputHalf]} placeholder="탄수화물(g)" value={carbs} onChangeText={setCarbs} keyboardType="numeric" />
+                <TextInput style={[styles.input, styles.inputHalf]} placeholder="지방(g)" value={fat} onChangeText={setFat} keyboardType="numeric" />
               </View>
               
               <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={mealType}
-                  onValueChange={(itemValue) => setMealType(itemValue)}
-                >
+                <Picker selectedValue={mealType} onValueChange={(itemValue) => setMealType(itemValue)}>
                   <Picker.Item label="아침" value="breakfast" />
                   <Picker.Item label="점심" value="lunch" />
                   <Picker.Item label="저녁" value="dinner" />
                   <Picker.Item label="간식" value="snack" />
                 </Picker>
               </View>
-              <Button
-                title={isSubmitting ? '저장 중...' : '기록하기'}
-                onPress={handleAddMeal}
-                disabled={isSubmitting}
-              />
+              <Button title={isSubmitting ? '저장 중...' : '기록하기'} onPress={handleAddMeal} disabled={isSubmitting} />
             </View>
 
-            {/* --- 3. 오늘 먹은 목록 헤더 --- */}
             <View style={styles.listContainer}>
               <Text style={styles.subHeader}>
                 {getFormattedDate(selectedDate)} 기록
@@ -521,22 +534,19 @@ const MealLogger = ({ session }) => {
             {logs.length === 0 && !loading && (
               <Text style={styles.emptyText}>기록이 없습니다.</Text>
             )}
-            <View style={styles.logoutButton}> 
-              <Button
-                title="로그아웃"
-                color="red"
-                onPress={() => supabase.auth.signOut()}
-              />
-            </View>
+            <View style={{ height: 100 }} />
           </>
         }
       />
-    </>
+    </SafeAreaView>
   );
 };
 
-// --- ⭐️ [수정] 5. 스타일 시트 (프로그래스 바 스타일 추가) ---
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
   container: { flex: 1, padding: 15 },
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   summaryContainer: {
@@ -545,6 +555,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 20,
     alignItems: 'center',
+    marginTop: 30,
   },
   dateNavigator: {
     flexDirection: 'row',
@@ -554,10 +565,18 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   header: { fontSize: 20, fontWeight: 'bold' },
-  calorieSummary: { fontSize: 32, fontWeight: 'bold', color: '#007bff', marginTop: 5 },
-  calorieGoal: { fontSize: 16, color: '#555', marginBottom: 10 },
-  
-  // ⭐️ [신규] 프로그래스 바 스타일
+  calorieSummary: { 
+    fontSize: 32, 
+    fontWeight: 'bold', 
+    color: '#007bff', 
+    marginTop: 5,
+    marginBottom: 5,
+  },
+  calorieGoalText: { 
+    fontSize: 20, 
+    color: '#555', 
+    fontWeight: 'bold', 
+  },
   progressBarContainer: {
     width: '100%',
     height: 10,
@@ -570,10 +589,26 @@ const styles = StyleSheet.create({
   progressBar: {
     height: '100%',
   },
-
-  macroSummary: { flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginTop: 10 },
-  macroText: { fontSize: 16, color: '#333' },
-  
+  macroSummary: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    width: '100%', 
+    marginTop: 10,
+    paddingHorizontal: 10, 
+  },
+  macroItem: {
+    alignItems: 'center',
+  },
+  macroLabel: {
+    fontSize: 17, // ⭐️ [수정] 16 -> 14로 축소
+    fontWeight: 'bold',
+    color: '#000',
+    marginBottom: 5,
+  },
+  macroValue: { 
+    fontSize: 14, // ⭐️ [수정] 20 -> 14로 축소
+    color: '#555',
+  },
   formContainer: { marginBottom: 20, padding: 15, backgroundColor: '#f9f9f9', borderRadius: 10 },
   formHeader: {
     flexDirection: 'row',
@@ -594,7 +629,6 @@ const styles = StyleSheet.create({
   deleteButton: { padding: 8, marginLeft: 10 },
   deleteText: { fontSize: 20, color: 'red', fontWeight: 'bold' },
   emptyText: { textAlign: 'center', color: 'gray', padding: 20 },
-  logoutButton: { marginTop: 20, marginBottom: 40 },
 
   modalContainer: {
     flex: 1,
