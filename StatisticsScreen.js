@@ -454,7 +454,7 @@ const StatisticsScreen = ({ session }) => {
               const percent = goalCalories > 0 ? Math.round((intake / goalCalories) * 100) : 0;
 
               let percentColor = '#888';
-              if (percent >= 90 && percent <= 100) {
+              if (percent >= 80 && percent <= 100) {
                 percentColor = '#007bff';
               } else if (percent > 100) {
                 percentColor = '#F44336';
