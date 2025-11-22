@@ -4,6 +4,7 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, ScrollView } from 'react-native';
 import { supabase } from './supabaseClient';
 import { useFocusEffect } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const ProfileScreen = ({ session, navigation }) => {
   const [loading, setLoading] = useState(true);
@@ -57,15 +58,15 @@ const ProfileScreen = ({ session, navigation }) => {
     );
   };
 
+  // ⭐️ [수정] 활동량 텍스트 변경 (숫자를 텍스트로)
   const getActivityLevelText = (level) => {
-    switch (level) {
-      case 'sedentary': return '좌식 (거의 활동 없음)';
-      case 'lightly_active': return '가벼운 활동 (주 1-3회)';
-      case 'moderately_active': return '보통 활동 (주 3-5회)';
-      case 'very_active': return '매우 활동적 (주 6-7회)';
-      case 'extra_active': return '격렬한 활동 (매일)';
-      default: return level;
-    }
+    const levelNum = parseFloat(level);
+    if (levelNum === 1.2) return '매우 적음';
+    if (levelNum === 1.375) return '적음';
+    if (levelNum === 1.55) return '보통';
+    if (levelNum === 1.725) return '많음';
+    if (levelNum === 1.9) return '매우 많음';
+    return level;
   };
 
   const getGoalText = (type) => {
@@ -86,91 +87,104 @@ const ProfileScreen = ({ session, navigation }) => {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      <Text style={styles.header}>내 프로필</Text>
+    // ⭐️ SafeAreaView에 edges 속성을 추가하여 하단을 제외합니다.
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+        <Text style={styles.header}>내 프로필</Text>
 
-      <View style={styles.infoCard}>
-        <Text style={styles.emailText}>{session.user.email}</Text>
-        <View style={styles.divider} />
-        
-        {/* ⭐️ [신규] 운동 목적 표시 */}
-        <View style={styles.row}>
-          <Text style={styles.label}>운동 목적</Text>
-          <Text style={[styles.value, { color: '#007bff' }]}>{getGoalText(profile?.goal_type)}</Text>
-        </View>
-        <View style={styles.divider} />
+        <View style={styles.infoCard}>
+          <View style={styles.row}>
+            <Text style={styles.label}>아이디</Text>
+            <Text style={styles.value}>{session.user.email}</Text>
+          </View>
+          <View style={styles.divider} />
+          
+          <View style={styles.row}>
+            <Text style={styles.label}>목적</Text>
+            <Text style={[styles.value, { color: '#007bff' }]}>{getGoalText(profile?.goal_type)}</Text>
+          </View>
+          
+          <View style={styles.divider} />
 
-        <View style={styles.row}>
-          <Text style={styles.label}>성별</Text>
-          <Text style={styles.value}>{profile?.gender === 'male' ? '남성' : '여성'}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>나이</Text>
-          <Text style={styles.value}>{profile?.age}세</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>키</Text>
-          <Text style={styles.value}>{profile?.height} cm</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>현재 체중</Text>
-          <Text style={styles.value}>{profile?.current_weight} kg</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>목표 체중</Text>
-          <Text style={styles.value}>{profile?.goal_weight} kg</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>활동량</Text>
-          <Text style={styles.value}>{getActivityLevelText(profile?.activity_level)}</Text>
-        </View>
-        
-        <View style={styles.divider} />
-        
-        <View style={styles.row}>
-          <Text style={styles.highlightLabel}>목표 칼로리</Text>
-          <Text style={styles.highlightValue}>{profile?.goal_calories} kcal</Text>
-        </View>
-
-        {/* ⭐️ [신규] 권장 영양소 표시 */}
-        <View style={styles.macroContainer}>
-          <Text style={styles.macroTitle}>일일 권장 섭취량</Text>
-          <View style={styles.macroRow}>
-            <View style={styles.macroItem}>
-              <Text style={styles.macroLabel}>탄수화물</Text>
-              <Text style={styles.macroValue}>{profile?.recommend_carbs || 0}g</Text>
+          <View style={styles.row}>
+            <Text style={styles.label}>성별</Text>
+            <Text style={styles.value}>{profile?.gender === 'male' ? '남성' : '여성'}</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.label}>나이</Text>
+            <Text style={styles.value}>{profile?.age}세</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.label}>키</Text>
+            <Text style={styles.value}>{profile?.height} cm</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.label}>현재 체중</Text>
+            <Text style={styles.value}>{profile?.current_weight} kg</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.label}>목표 체중</Text>
+            <Text style={styles.value}>{profile?.goal_weight} kg</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.label}>활동량</Text>
+            <Text style={styles.value}>{getActivityLevelText(profile?.activity_level)}</Text>
+          </View>
+          
+          <View style={styles.divider} />
+          
+          {/* ⭐️ [수정] 레이아웃 순서 변경 */}
+          <View style={styles.macroContainer}>
+            <Text style={styles.macroTitle}>일일 권장 섭취량</Text>
+            
+            <View style={styles.row}>
+              <Text style={styles.highlightLabel}>목표 칼로리</Text>
+              <Text style={styles.highlightValue}>{profile?.goal_calories} kcal</Text>
             </View>
-            <View style={styles.macroItem}>
-              <Text style={styles.macroLabel}>단백질</Text>
-              <Text style={styles.macroValue}>{profile?.recommend_protein || 0}g</Text>
-            </View>
-            <View style={styles.macroItem}>
-              <Text style={styles.macroLabel}>지방</Text>
-              <Text style={styles.macroValue}>{profile?.recommend_fat || 0}g</Text>
+
+            <View style={styles.macroRow}>
+              <View style={styles.macroItem}>
+                <Text style={styles.macroLabel}>탄수화물</Text>
+                <Text style={styles.macroValue}>{profile?.recommend_carbs || 0}g</Text>
+              </View>
+              <View style={styles.macroItem}>
+                <Text style={styles.macroLabel}>단백질</Text>
+                <Text style={styles.macroValue}>{profile?.recommend_protein || 0}g</Text>
+              </View>
+              <View style={styles.macroItem}>
+                <Text style={styles.macroLabel}>지방</Text>
+                <Text style={styles.macroValue}>{profile?.recommend_fat || 0}g</Text>
+              </View>
             </View>
           </View>
         </View>
-      </View>
 
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => navigation.navigate('프로필 수정', { profileData: profile })}
-      >
-        <Text style={styles.buttonText}>프로필 수정하기</Text>
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => navigation.navigate('프로필 수정', { profileData: profile })}
+        >
+          <Text style={styles.buttonText}>프로필 수정하기</Text>
+        </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[styles.button, styles.logoutButton]}
-        onPress={handleSignOut}
-      >
-        <Text style={styles.buttonText}>로그아웃</Text>
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.button, styles.logoutButton]}
+          onPress={handleSignOut}
+        >
+          <Text style={styles.buttonText}>로그아웃</Text>
+        </TouchableOpacity>
 
-    </ScrollView>
+        {/* ⭐️ 하단 여백 추가 */}
+        <View style={{ height: 20 }} />
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#f8f8f8',
+  },
   container: {
     flex: 1,
     backgroundColor: '#f8f8f8',
@@ -189,6 +203,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 20,
     color: '#333',
+    marginTop: -10,
   },
   infoCard: {
     width: '100%',
@@ -202,12 +217,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  emailText: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 5,
-  },
   divider: {
     height: 1,
     backgroundColor: '#eee',
@@ -217,6 +226,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 12,
+    alignItems: 'center',
   },
   label: {
     fontSize: 16,
@@ -240,22 +250,19 @@ const styles = StyleSheet.create({
     color: '#007bff',
     fontWeight: 'bold',
   },
-  // ⭐️ [신규] 권장 영양소 스타일
   macroContainer: {
-    marginTop: 15,
-    paddingTop: 15,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
+    marginBottom: 15,
   },
   macroTitle: {
     fontSize: 14,
     color: '#777',
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: 15, // 간격 조정
   },
   macroRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
+    marginTop: 15, // 간격 조정
   },
   macroItem: {
     alignItems: 'center',

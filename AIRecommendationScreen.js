@@ -12,19 +12,18 @@ import {
   Modal,
   ScrollView,
 } from 'react-native';
-// ⭐️ [수정] SafeAreaView 다시 사용
+// ⭐️ SafeAreaView 사용 (하단 제외 설정을 위해)
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from './supabaseClient';
-import { GoogleGenerativeAI } from "@google/generative-ai";
+// ⭐️ [완전 삭제] GoogleGenerativeAI import 제거
+// import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 
-// ⭐️ [필수] 여기에 Google AI Studio에서 발급받은 실제 키를 입력하세요.
-const GEMINI_API_KEY = '';
+// ⭐️ [완전 삭제] 클라이언트 측 API 키 정의 자체를 제거해야 합니다.
+// const GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY';  <-- 이 줄이 아예 없어야 합니다.
 
 const AIRecommendationScreen = ({ session }) => {
-  // ⭐️ [수정] useSafeAreaInsets 제거 (SafeAreaView가 처리)
-  
   const [loadingData, setLoadingData] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
   const [todaySummary, setTodaySummary] = useState(null);
@@ -45,8 +44,6 @@ const AIRecommendationScreen = ({ session }) => {
   useEffect(() => {
       fetchHistory();
   }, [session]);
-
-  // ... (getFormattedDate, formatDisplayDate, fetchTodayData, fetchHistory, saveRecommendation, deleteHistoryItem, getAIRecommendation, handleHistoryPress 함수들은 기존과 동일)
 
   const getFormattedDate = (date) => {
     const year = date.getFullYear();
@@ -124,7 +121,7 @@ const AIRecommendationScreen = ({ session }) => {
     }
   };
 
- const saveRecommendation = async (text) => {
+  const saveRecommendation = async (text) => {
     if (!session?.user?.id) {
         Alert.alert("저장 실패", "로그인 정보가 없어 저장할 수 없습니다.");
         return;
@@ -134,7 +131,6 @@ const AIRecommendationScreen = ({ session }) => {
       const { error } = await supabase
         .from('ai_recommendations')
         .insert([
-          // ⭐️ text 뒤에 \n\n 추가하여 줄바꿈 두 번 적용
           { user_id: session.user.id, recommendation_text: text + '\n\n' }
         ]);
 
@@ -181,16 +177,17 @@ const AIRecommendationScreen = ({ session }) => {
         Alert.alert("알림", "데이터 로딩 중입니다. 잠시만 기다려주세요.");
         return;
     }
+    
+    // ⭐️⭐️⭐️ [핵심 수정] 아래의 API 키 검사 로직을 완전히 삭제했습니다. ⭐️⭐️⭐️
+    /*
     if (!GEMINI_API_KEY || GEMINI_API_KEY.includes('YOUR_GEMINI_API_KEY')) {
       Alert.alert("설정 오류", "AIRecommendationScreen.js 파일에 GEMINI_API_KEY를 설정해주세요.");
       return;
     }
+    */
 
     setAnalyzing(true);
     try {
-      const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
-
       const remaining = {
         calories: Math.max(0, goals.calories - todaySummary.calories),
         carbs: Math.max(0, goals.carbs - todaySummary.carbs),
@@ -210,9 +207,19 @@ const AIRecommendationScreen = ({ session }) => {
         4. 한국어로 친절하게 답변 (마크다운 없이 텍스트로만)
       `;
 
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
+      // Supabase Edge Function 호출
+      const { data, error } = await supabase.functions.invoke('gemini-ai', {
+        body: {
+          type: 'recommendation', // 요청 유형
+          prompt: prompt,
+          modelName: "gemini-2.5-flash-lite"
+        }
+      });
+
+      if (error) throw new Error(error.message);
+      if (!data || !data.result) throw new Error("AI로부터 결과가 오지 않았습니다.");
+
+      const text = data.result; // Edge Function에서 받은 결과
 
       const cleanText = text.replace(/### |[*]{2}/g, '');
       setAiResult(cleanText);
@@ -238,8 +245,7 @@ const AIRecommendationScreen = ({ session }) => {
       visible={modalVisible}
       onRequestClose={() => setModalVisible(false)}
     >
-      {/* ⭐️ [수정] 모달은 SafeAreaView를 사용하여 상단/하단 안전 영역 확보 */}
-      <SafeAreaView style={styles.modalSafeArea}>
+      <SafeAreaView style={styles.modalSafeArea} edges={['top', 'left', 'right']}>
         <View style={styles.modalHeader}>
           <Text style={styles.modalTitle}>
             {selectedHistory ? formatDisplayDate(selectedHistory.created_at) : ''} 결과
@@ -334,15 +340,13 @@ const AIRecommendationScreen = ({ session }) => {
   );
 
   return (
-    // ⭐️ [수정] 최상위 컨테이너를 SafeAreaView로 변경하여 상단 네모 문제 해결
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       {renderHistoryModal()}
       <FlatList
         style={styles.flatList}
         data={historyList}
         keyExtractor={(item) => item.id.toString()}
         ListHeaderComponent={renderHeader}
-        // ⭐️ [수정] contentContainerStyle에서 불필요한 패딩 제거
         contentContainerStyle={styles.listContentContainer}
         renderItem={({ item }) => (
           <View style={styles.historyItemContainer}>
@@ -368,7 +372,6 @@ const AIRecommendationScreen = ({ session }) => {
             <Text style={{color: '#aaa', marginTop: 5, fontSize: 12}}>AI 추천을 받으면 여기에 기록됩니다.</Text>
           </View>
         }
-        // ⭐️ [신규] ListFooterComponent를 추가하여 마지막 아이템이 잘리는 문제 해결
         ListFooterComponent={<View style={{ height: 20 }} />}
       />
     </SafeAreaView>
@@ -376,10 +379,9 @@ const AIRecommendationScreen = ({ session }) => {
 };
 
 const styles = StyleSheet.create({
-  // ⭐️ [수정] safeArea 스타일 적용
-  safeArea: { flex: 1, backgroundColor: '#f8f8f8' },
-  flatList: { flex: 1 },
-  // ⭐️ [수정] 기본 패딩만 적용
+  safeArea: { flex: 1, backgroundColor: 'transparent' },
+  
+  flatList: { flex: 1, backgroundColor: '#f8f8f8' },
   listContentContainer: { padding: 20 }, 
   
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
@@ -473,7 +475,6 @@ const styles = StyleSheet.create({
   historyPreview: { fontSize: 14, color: '#888', marginTop: 5 },
   emptyHistoryText: { textAlign: 'center', color: '#aaa', marginTop: 10, fontStyle: 'italic', fontSize: 16 },
 
-  // ⭐️ [수정] 모달용 SafeAreaView 스타일
   modalSafeArea: { flex: 1, backgroundColor: '#fff' },
   modalHeader: {
     flexDirection: 'row',

@@ -9,13 +9,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 const EditProfileScreen = ({ route, navigation, session }) => {
   const { profileData } = route.params;
 
+  // ⭐️ 여기서 activityLevel 상태 변수가 선언됩니다.
   const [gender, setGender] = useState(profileData?.gender || 'male');
   const [age, setAge] = useState(profileData?.age?.toString() || '');
   const [height, setHeight] = useState(profileData?.height?.toString() || '');
   const [currentWeight, setCurrentWeight] = useState(profileData?.current_weight?.toString() || '');
   const [goalWeight, setGoalWeight] = useState(profileData?.goal_weight?.toString() || '');
   const [activityLevel, setActivityLevel] = useState(profileData?.activity_level || '1.2');
-  // ⭐️ [신규] 운동 목적 상태 추가
   const [goalType, setGoalType] = useState(profileData?.goal_type || 'maintain');
   
   const [loading, setLoading] = useState(false);
@@ -25,7 +25,7 @@ const EditProfileScreen = ({ route, navigation, session }) => {
     const cw = parseFloat(currentWeight);
     const gw = parseFloat(goalWeight);
     const a = parseInt(age);
-    const act = parseFloat(activityLevel);
+    const act = parseFloat(activityLevel); // ⭐️ 여기서도 올바르게 사용됩니다.
 
     if (!h || !cw || !gw || !a) {
       Alert.alert('입력 오류', '모든 정보를 올바르게 입력해주세요.');
@@ -34,7 +34,6 @@ const EditProfileScreen = ({ route, navigation, session }) => {
 
     setLoading(true);
     try {
-      // 1. BMR 및 TDEE 계산
       let calculatedBmr = 0;
       if (gender === 'male') {
         calculatedBmr = (10 * cw) + (6.25 * h) - (5 * a) + 5;
@@ -43,19 +42,15 @@ const EditProfileScreen = ({ route, navigation, session }) => {
       }
       const calculatedTdee = calculatedBmr * act;
 
-      // 2. 목표 칼로리 계산 (기존 로직 유지 + 목적에 따른 미세 조정 가능하지만 일단 유지)
       let calculatedGoalCalories = calculatedTdee;
       const CALORIE_ADJUSTMENT = 500;
       
-      // 체중 목표에 따른 기본 칼로리 조정
       if (gw < cw) {
         calculatedGoalCalories = calculatedTdee - CALORIE_ADJUSTMENT;
       } else if (gw > cw) {
         calculatedGoalCalories = calculatedTdee + CALORIE_ADJUSTMENT;
       }
       
-      // ⭐️ [신규] 3. 목적에 따른 탄/단/지 비율 계산
-      // 다이어트: 4:4:2, 벌크업: 5:3:2, 유지: 5:2:3
       let ratioCarbs = 0.5;
       let ratioProtein = 0.2;
       let ratioFat = 0.3;
@@ -66,7 +61,6 @@ const EditProfileScreen = ({ route, navigation, session }) => {
         ratioCarbs = 0.5; ratioProtein = 0.3; ratioFat = 0.2;
       }
 
-      // g = (총칼로리 * 비율) / (칼로리당 에너지: 탄4, 단4, 지9)
       const recCarbs = Math.round((calculatedGoalCalories * ratioCarbs) / 4);
       const recProtein = Math.round((calculatedGoalCalories * ratioProtein) / 4);
       const recFat = Math.round((calculatedGoalCalories * ratioFat) / 9);
@@ -79,12 +73,10 @@ const EditProfileScreen = ({ route, navigation, session }) => {
         current_weight: cw,
         goal_weight: gw,
         activity_level: act,
-        // ⭐️ [신규] 목적 및 영양소 저장
         goal_type: goalType,
         recommend_carbs: recCarbs,
         recommend_protein: recProtein,
         recommend_fat: recFat,
-        
         bmr: Math.round(calculatedBmr),
         tdee: Math.round(calculatedTdee),
         goal_calories: Math.round(calculatedGoalCalories),
@@ -99,7 +91,7 @@ const EditProfileScreen = ({ route, navigation, session }) => {
 
       Alert.alert(
         '저장 완료',
-        `목적: ${goalType === 'diet' ? '다이어트' : goalType === 'bulkup' ? '벌크업' : '체중 유지'}\n목표 칼로리: ${Math.round(calculatedGoalCalories)} kcal\n(탄:${recCarbs}g, 단:${recProtein}g, 지:${recFat}g)`,
+        `목적: ${goalType === 'diet' ? '다이어트' : goalType === 'bulkup' ? '벌크업' : '체중 유지'}\n목표 칼로리: ${Math.round(calculatedGoalCalories)} kcal`,
         [{ text: '확인', onPress: () => navigation.goBack() }]
       );
 
@@ -111,21 +103,21 @@ const EditProfileScreen = ({ route, navigation, session }) => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    // ⭐️ SafeAreaView에 edges 속성을 추가하여 하단을 제외합니다.
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 50 }}>
         <Text style={styles.header}>프로필 정보 수정</Text>
 
-        {/* ⭐️ [신규] 운동 목적 선택 */}
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>운동 목적 (식단 비율 설정)</Text>
+          <Text style={styles.label}>목적</Text>
           <View style={styles.pickerContainer}>
             <Picker
               selectedValue={goalType}
               onValueChange={(itemValue) => setGoalType(itemValue)}
             >
-              <Picker.Item label="체중 유지 / 건강 (5:2:3)" value="maintain" />
-              <Picker.Item label="다이어트 (4:4:2)" value="diet" />
-              <Picker.Item label="벌크업 (5:3:2)" value="bulkup" />
+              <Picker.Item label="체중 유지 / 건강" value="maintain" />
+              <Picker.Item label="다이어트" value="diet" />
+              <Picker.Item label="벌크업" value="bulkup" />
             </Picker>
           </View>
         </View>
@@ -190,15 +182,16 @@ const EditProfileScreen = ({ route, navigation, session }) => {
         <View style={styles.inputGroup}>
           <Text style={styles.label}>활동량</Text>
           <View style={styles.pickerContainer}>
+            {/* ⭐️ 여기서 activityLevel 상태 변수가 사용됩니다. */}
             <Picker
               selectedValue={activityLevel}
               onValueChange={(itemValue) => setActivityLevel(itemValue)}
             >
-              <Picker.Item label="좌식 (거의 활동 없음)" value={1.2} />
-              <Picker.Item label="가벼운 활동 (주 1-3회)" value={1.375} />
-              <Picker.Item label="보통 활동 (주 3-5회)" value={1.55} />
-              <Picker.Item label="높은 활동 (주 6-7회)" value={1.725} />
-              <Picker.Item label="매우 높은 활동 (매일)" value={1.9} />
+              <Picker.Item label="매우 적음 (운동 안함)" value={1.2} />
+              <Picker.Item label="적음 (주 1-3회 운동)" value={1.375} />
+              <Picker.Item label="보통 (주 3-5회 운동)" value={1.55} />
+              <Picker.Item label="많음 (주 6-7회 운동)" value={1.725} />
+              <Picker.Item label="매우 많음 (매일 운동/육체 노동)" value={1.9} />
             </Picker>
           </View>
         </View>
@@ -213,6 +206,8 @@ const EditProfileScreen = ({ route, navigation, session }) => {
           </TouchableOpacity>
         </View>
 
+        {/* ⭐️ 하단 여백 추가 */}
+        <View style={{ height: 20 }} />
       </ScrollView>
     </SafeAreaView>
   );

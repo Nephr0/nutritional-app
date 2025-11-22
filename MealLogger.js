@@ -22,11 +22,12 @@ import { supabase } from './supabaseClient';
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { GoogleGenerativeAI } from "@google/generative-ai";
+// ⭐️ [삭제] GoogleGenerativeAI import 제거
+// import { GoogleGenerativeAI } from "@google/generative-ai";
 import DateTimePicker from '@react-native-community/datetimepicker';
 
-// ⭐️ [필수] 여기에 Google AI Studio에서 발급받은 키를 넣으세요
-const GEMINI_API_KEY = '';
+// ⭐️ [삭제] 클라이언트 측 API 키 정의 제거
+// const GEMINI_API_KEY = '';
 
 // 두 날짜 객체가 같은 날인지 확인하는 유틸리티 함수
 const isSameDay = (date1, date2) => {
@@ -52,6 +53,7 @@ const MEAL_TYPES = [
 ];
 
 const MealLogger = ({ session }) => {
+  // ... (기존 state들은 그대로 유지)
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
   const [logs, setLogs] = useState([]);
@@ -89,6 +91,8 @@ const MealLogger = ({ session }) => {
 
   // 상세 보기를 위해 선택된 식단 기록 저장용 상태
   const [selectedLogToView, setSelectedLogToView] = useState(null);
+
+  // ... (기존 함수들 그대로 유지: onChangeDate, formatDateMMDD, prevDateObj, nextDateObj, fetchData, handleDeleteMeal, handleOpenLogDetails, handlePrevDay, handleNextDay)
 
   const onChangeDate = (event, selected) => {
     const currentDate = selected || selectedDate;
@@ -170,10 +174,13 @@ const MealLogger = ({ session }) => {
   };
 
   const handleNutritionScan = async () => {
+    // ⭐️ [삭제] API 키 체크 로직 제거
+    /*
     if (!GEMINI_API_KEY || GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY') {
       Alert.alert("설정 오류", "Gemini API 키를 설정해주세요.");
       return;
     }
+    */
 
     Alert.alert("영양성분표 입력", "사진을 어떻게 가져올까요?", [
       {
@@ -217,8 +224,11 @@ const MealLogger = ({ session }) => {
   const analyzeImageWithGemini = async (base64Image) => {
     setIsAnalyzing(true);
     try {
+      // ⭐️ [삭제] Gemini 직접 호출 코드 제거
+      /*
       const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
       const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+      */
 
       const prompt = `
         Analyze this image of a nutrition facts label.
@@ -240,6 +250,8 @@ const MealLogger = ({ session }) => {
         Output format raw JSON: {"food_name": "...", "calories": 0, "carbs": 0, "protein": 0, "fat": 0, "sugar": 0, "fiber": 0, "saturated_fat": 0, "trans_fat": 0, "cholesterol": 0, "sodium": 0, "potassium": 0, "serving_size": "..."}
       `;
 
+      // ⭐️ [삭제] Gemini 직접 호출 코드 제거
+      /*
       const imagePart = {
         inlineData: {
           data: base64Image,
@@ -249,6 +261,22 @@ const MealLogger = ({ session }) => {
 
       const result = await model.generateContent([prompt, imagePart]);
       const responseText = result.response.text();
+      */
+
+      // ⭐️ [신규] Supabase Edge Function 호출
+      const { data, error } = await supabase.functions.invoke('gemini-ai', {
+        body: {
+          type: 'image_analysis', // 요청 유형 지정
+          prompt: prompt,
+          imageBase64: base64Image, // 이미지 데이터 전달
+          modelName: "gemini-2.5-flash-lite"
+        }
+      });
+
+      if (error) throw new Error(error.message);
+      if (!data || !data.result) throw new Error("AI로부터 결과가 오지 않았습니다.");
+
+      const responseText = data.result; // Edge Function에서 받은 결과 텍스트
       
       const cleanJson = responseText.replace(/```json|```/g, '').trim();
       const parsedData = JSON.parse(cleanJson);
@@ -290,8 +318,11 @@ const MealLogger = ({ session }) => {
 
     setIsAnalyzing(true);
     try {
+      // ⭐️ [삭제] Gemini 직접 호출 코드 제거
+      /*
       const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
       const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+      */
 
       const prompt = `
         Analyze this food description: "${aiSearchText}".
@@ -315,8 +346,25 @@ const MealLogger = ({ session }) => {
         Output raw JSON example: {"food_name": "피자", "calories": 500, "carbs": 60, "protein": 20, "fat": 25, "sugar": 5, "fiber": 2, "saturated_fat": 10, "trans_fat": 0.5, "cholesterol": 30, "sodium": 800, "potassium": 200, "serving_size": "2조각"}
       `;
 
+      // ⭐️ [삭제] Gemini 직접 호출 코드 제거
+      /*
       const result = await model.generateContent(prompt);
       const responseText = result.response.text();
+      */
+
+      // ⭐️ [신규] Supabase Edge Function 호출
+      const { data, error } = await supabase.functions.invoke('gemini-ai', {
+        body: {
+          type: 'text_analysis', // 요청 유형 지정
+          prompt: prompt,
+          modelName: "gemini-2.5-flash-lite"
+        }
+      });
+
+      if (error) throw new Error(error.message);
+      if (!data || !data.result) throw new Error("AI로부터 결과가 오지 않았습니다.");
+
+      const responseText = data.result; // Edge Function에서 받은 결과 텍스트
       
       const cleanJson = responseText.replace(/```json|```/g, '').trim();
       const parsedData = JSON.parse(cleanJson);
@@ -348,6 +396,8 @@ const MealLogger = ({ session }) => {
       setIsAnalyzing(false);
     }
   };
+
+  // ... (이후 handleSearchFood부터 끝까지 기존 코드와 완전히 동일합니다)
 
   const handleSearchFood = async (query) => {
     setSearchQuery(query);
@@ -1625,7 +1675,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   addFoodButton: { 
-    backgroundColor: '#28a745', 
+    backgroundColor: '#007bff', 
     paddingVertical: 8,
     paddingHorizontal: 15,
     borderRadius: 10, 

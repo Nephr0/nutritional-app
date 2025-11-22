@@ -1,26 +1,26 @@
 // StatisticsScreen.js
 
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ActivityIndicator, 
-  Dimensions, 
-  ScrollView, 
-  Button, 
-  Alert, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  Dimensions,
+  ScrollView,
+  Button,
+  Alert,
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { 
-  VictoryChart, 
-  VictoryBar, 
-  VictoryAxis, 
-  VictoryTheme, 
-  VictoryLabel, 
-  VictoryPie, 
-  VictoryStack 
+import {
+  VictoryChart,
+  VictoryBar,
+  VictoryAxis,
+  VictoryTheme,
+  VictoryLabel,
+  VictoryPie,
+  VictoryStack
 } from 'victory-native';
 import { Svg } from 'react-native-svg';
 import { supabase } from './supabaseClient';
@@ -29,12 +29,12 @@ import { getFormattedDate } from './MealLogger';
 const StatisticsScreen = ({ session }) => {
   const screenWidth = Dimensions.get('window').width;
   const chartWidth = screenWidth - 40;
-  const cellWidth = (screenWidth - 52) / 7; 
+  const cellWidth = (screenWidth - 52) / 7;
 
   const [loading, setLoading] = useState(true);
   const [goalCalories, setGoalCalories] = useState(0);
   const [dailyGoalNutrients, setDailyGoalNutrients] = useState({ carbs: 0, protein: 0, fat: 0 });
-  
+
   const [viewMode, setViewMode] = useState('weekly');
 
   // 주간 통계용 State
@@ -49,9 +49,9 @@ const StatisticsScreen = ({ session }) => {
   const [chartData, setChartData] = useState([]);
 
   // 월간 통계용 State
-  const [currentMonth, setCurrentMonth] = useState(new Date()); 
-  const [monthlyData, setMonthlyData] = useState({}); 
-  const [selectedDateDetail, setSelectedDateDetail] = useState(null); 
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [monthlyData, setMonthlyData] = useState({});
+  const [selectedDateDetail, setSelectedDateDetail] = useState(null);
 
   useEffect(() => {
     if (session) {
@@ -65,24 +65,24 @@ const StatisticsScreen = ({ session }) => {
 
   const renderNutrientBar = (label, value, goal, percent, colorMain, colorLight) => {
     const isOver = percent > 100;
-    const barHeight = Math.min(percent, 100); 
-    
+    const barHeight = Math.min(percent, 100);
+
     return (
       <View style={styles.nutrientBarItem}>
         <Text style={[styles.nutrientBarLabel, { color: colorMain }]}>{label}</Text>
-        
+
         <View style={styles.barWrapper}>
           <View style={[styles.barBackground, { backgroundColor: colorLight }]} />
           <View style={[
-            styles.barFill, 
-            { 
-              height: `${barHeight}%`, 
+            styles.barFill,
+            {
+              height: `${barHeight}%`,
               backgroundColor: colorMain,
             }
           ]} />
           {isOver && (
-            <View style={styles.warningIcon}> 
-              <Text style={{fontSize:12}}>⚠️</Text>
+            <View style={styles.warningIcon}>
+              <Text style={{ fontSize: 12 }}>⚠️</Text>
             </View>
           )}
         </View>
@@ -124,7 +124,7 @@ const StatisticsScreen = ({ session }) => {
         const day = date.getDate().toString().padStart(2, '0');
         return `${month}.${day}`;
       };
-      
+
       setCurrentYear(periodEndDate.getFullYear().toString());
       setDateRangeText(`${formatDateSimple(periodStartDate)} ~ ${formatDateSimple(periodEndDate)}`);
 
@@ -142,8 +142,8 @@ const StatisticsScreen = ({ session }) => {
       let totalSugar = 0, totalSodium = 0;
       let totalWeeklyCalories = 0;
       let daysWithRecords = new Set();
-      let dailyMap = {}; 
-      
+      let dailyMap = {};
+
       const initData = [];
       for (let i = 0; i < 7; i++) {
         const d = new Date(periodStartDate);
@@ -170,7 +170,7 @@ const StatisticsScreen = ({ session }) => {
         totalFat += log.fat || 0;
         totalSugar += log.sugar || 0;
         totalSodium += log.sodium || 0;
-        
+
         totalWeeklyCalories += log.calories || 0;
         dailyMap[dateStr] += log.calories || 0;
 
@@ -187,7 +187,7 @@ const StatisticsScreen = ({ session }) => {
       setWeeklyNutrients({ carbs: totalCarbs, protein: totalProtein, fat: totalFat, sugar: totalSugar, sodium: totalSodium });
       setMealTypeData(newMealData);
       setDailyTotalData(newDailyTotal);
-      setChartData(newDailyTotal); 
+      setChartData(newDailyTotal);
 
       let success = 0;
       const goal = profileData?.goal_calories || 0;
@@ -208,14 +208,14 @@ const StatisticsScreen = ({ session }) => {
 
   const fetchMonthlyStatistics = async () => {
     setLoading(true);
-    setSelectedDateDetail(null); 
+    setSelectedDateDetail(null);
     try {
       const { data: profileData } = await supabase
         .from('user_profiles')
         .select('goal_calories, recommend_carbs, recommend_protein, recommend_fat')
         .eq('user_id', session.user.id)
         .single();
-      
+
       if (profileData) {
         setGoalCalories(profileData.goal_calories || 0);
         setDailyGoalNutrients({
@@ -243,10 +243,10 @@ const StatisticsScreen = ({ session }) => {
       logsData.forEach(log => {
         const d = log.date;
         if (!map[d]) {
-          map[d] = { 
-            calories: 0, 
-            carbs: 0, 
-            protein: 0, 
+          map[d] = {
+            calories: 0,
+            carbs: 0,
+            protein: 0,
             fat: 0,
             sugar: 0,
             fiber: 0,
@@ -302,7 +302,7 @@ const StatisticsScreen = ({ session }) => {
   };
 
   const renderWeeklyView = () => {
-    const stackColors = ['#FFCC80', '#FFAB91', '#CE93D8', '#90CAF9']; 
+    const stackColors = ['#FFCC80', '#FFAB91', '#CE93D8', '#90CAF9'];
 
     const maxDailyCal = dailyTotalData.length > 0 ? Math.max(...dailyTotalData.map(d => d.y)) : 0;
     const maxDomain = Math.max(maxDailyCal, goalCalories) * 1.3 || 2000;
@@ -335,7 +335,7 @@ const StatisticsScreen = ({ session }) => {
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>목표 달성</Text>
               <Text style={styles.summaryValue}>
-                <Text style={{color: '#4CAF50'}}>{successDays}</Text>
+                <Text style={{ color: '#4CAF50' }}>{successDays}</Text>
                 <Text> / 7일</Text>
               </Text>
             </View>
@@ -368,33 +368,33 @@ const StatisticsScreen = ({ session }) => {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>일별/끼니별 칼로리</Text>
           <View style={styles.stackLegend}>
-            <Text style={[styles.stackLegendText, {color:stackColors[0]}]}>●아침</Text>
-            <Text style={[styles.stackLegendText, {color:stackColors[1]}]}>●점심</Text>
-            <Text style={[styles.stackLegendText, {color:stackColors[2]}]}>●저녁</Text>
-            <Text style={[styles.stackLegendText, {color:stackColors[3]}]}>●간식</Text>
+            <Text style={[styles.stackLegendText, { color: stackColors[0] }]}>●아침</Text>
+            <Text style={[styles.stackLegendText, { color: stackColors[1] }]}>●점심</Text>
+            <Text style={[styles.stackLegendText, { color: stackColors[2] }]}>●저녁</Text>
+            <Text style={[styles.stackLegendText, { color: stackColors[3] }]}>●간식</Text>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <Svg width={chartWidth} height={300}>
               <VictoryChart domainPadding={{ x: 20 }} theme={VictoryTheme.material} height={300} width={chartWidth} padding={{ top: 30, bottom: 50, left: 60, right: 30 }} domain={{ y: [0, maxDomain] }}>
                 {goalCalories > 0 && (
-                  <VictoryAxis 
-                    dependentAxis 
-                    standalone={false} 
-                    tickValues={[goalCalories]} 
-                    tickFormat={['']} 
-                    style={{ 
-                      grid: { stroke: "red", strokeDasharray: "4, 4" }, 
+                  <VictoryAxis
+                    dependentAxis
+                    standalone={false}
+                    tickValues={[goalCalories]}
+                    tickFormat={['']}
+                    style={{
+                      grid: { stroke: "red", strokeDasharray: "4, 4" },
                       axis: { stroke: "none" }
-                    }} 
+                    }}
                   />
                 )}
                 <VictoryAxis style={{ axis: { stroke: "#756f6a" }, tickLabels: { fontSize: 12, padding: 5, angle: 0 } }} />
                 <VictoryAxis dependentAxis tickFormat={(tick) => `${tick}`} style={{ axis: { stroke: "none" }, tickLabels: { fill: "#000", fontSize: 10, padding: 5 }, grid: { stroke: "lightgray", strokeDasharray: "5, 5" } }} />
                 <VictoryStack colorScale={stackColors}>
-                  <VictoryBar data={mealTypeData.breakfast} x="x" y="y" barWidth={12} cornerRadius={{ top: 2 }}/>
-                  <VictoryBar data={mealTypeData.lunch} x="x" y="y" barWidth={12} cornerRadius={{ top: 2 }}/>
-                  <VictoryBar data={mealTypeData.dinner} x="x" y="y" barWidth={12} cornerRadius={{ top: 2 }}/>
-                  <VictoryBar data={mealTypeData.snack} x="x" y="y" barWidth={12} cornerRadius={{ top: 2 }}/>
+                  <VictoryBar data={mealTypeData.breakfast} x="x" y="y" barWidth={12} cornerRadius={{ top: 2 }} />
+                  <VictoryBar data={mealTypeData.lunch} x="x" y="y" barWidth={12} cornerRadius={{ top: 2 }} />
+                  <VictoryBar data={mealTypeData.dinner} x="x" y="y" barWidth={12} cornerRadius={{ top: 2 }} />
+                  <VictoryBar data={mealTypeData.snack} x="x" y="y" barWidth={12} cornerRadius={{ top: 2 }} />
                 </VictoryStack>
               </VictoryChart>
             </Svg>
@@ -411,7 +411,7 @@ const StatisticsScreen = ({ session }) => {
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     const daysInMonth = lastDay.getDate();
-    const startDayOfWeek = firstDay.getDay(); 
+    const startDayOfWeek = firstDay.getDay();
 
     const calendarDays = [];
     for (let i = 0; i < startDayOfWeek; i++) calendarDays.push(null);
@@ -436,46 +436,46 @@ const StatisticsScreen = ({ session }) => {
           <View style={styles.weekRow}>
             {['일', '월', '화', '수', '목', '금', '토'].map((d, i) => (
               <Text key={i} style={[
-                styles.dayHeader, 
-                { width: cellWidth }, 
-                i === 0 ? {color:'#F44336'} : null, 
-                i === 6 ? {color:'#2196F3'} : null
+                styles.dayHeader,
+                { width: cellWidth },
+                i === 0 ? { color: '#F44336' } : null,
+                i === 6 ? { color: '#2196F3' } : null
               ]}>{d}</Text>
             ))}
           </View>
-          
+
           <View style={styles.daysGrid}>
             {calendarDays.map((day, index) => {
               if (day === null) return <View key={index} style={[styles.dayCellEmpty, { width: cellWidth }]} />;
-              
+
               const dateStr = getFormattedDate(new Date(year, month, day));
               const dayData = monthlyData[dateStr];
               const intake = dayData?.calories || 0;
               const percent = goalCalories > 0 ? Math.round((intake / goalCalories) * 100) : 0;
-              
-              let percentColor = '#888'; 
+
+              let percentColor = '#888';
               if (percent >= 90 && percent <= 100) {
                 percentColor = '#007bff';
               } else if (percent > 100) {
                 percentColor = '#F44336';
               }
-              
+
               const isSelected = selectedDateDetail?.date === dateStr;
 
               return (
-                <TouchableOpacity 
-                  key={index} 
+                <TouchableOpacity
+                  key={index}
                   style={[
-                    styles.dayCell, 
+                    styles.dayCell,
                     { width: cellWidth },
-                    isSelected ? styles.selectedDayCell : null 
+                    isSelected ? styles.selectedDayCell : null
                   ]}
                   onPress={() => handleDayPress(dateStr, dayData)}
                 >
                   <Text style={[
-                    styles.dayNumber, 
-                    index % 7 === 0 ? {color:'#F44336'} : null, 
-                    index % 7 === 6 ? {color:'#2196F3'} : null
+                    styles.dayNumber,
+                    index % 7 === 0 ? { color: '#F44336' } : null,
+                    index % 7 === 6 ? { color: '#2196F3' } : null
                   ]}>
                     {day}
                   </Text>
@@ -493,9 +493,9 @@ const StatisticsScreen = ({ session }) => {
             })}
           </View>
         </View>
-        
+
         {selectedDateDetail ? (
-          <ScrollView style={styles.card}> 
+          <ScrollView style={styles.card}>
             <Text style={styles.cardTitle}>
               {(() => {
                 const [y, m, d] = selectedDateDetail.date.split('-');
@@ -503,17 +503,17 @@ const StatisticsScreen = ({ session }) => {
                 return `${day}일`;
               })()} 상세 정보
             </Text>
-            
-            <View style={{marginBottom: 20, alignItems: 'center'}}>
-              <Text style={{fontSize: 16, color: '#333', marginBottom: 5}}>총 섭취 칼로리</Text>
-              <Text style={{fontSize: 24, fontWeight:'bold', color: '#007bff'}}>
-                {selectedDateDetail.calories} <Text style={{fontSize: 16, color: '#333'}}>/ {goalCalories} kcal</Text>
+
+            <View style={{ marginBottom: 20, alignItems: 'center' }}>
+              <Text style={{ fontSize: 16, color: '#333', marginBottom: 5 }}>총 섭취 칼로리</Text>
+              <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#007bff' }}>
+                {selectedDateDetail.calories} <Text style={{ fontSize: 16, color: '#333' }}>/ {goalCalories} kcal</Text>
               </Text>
             </View>
 
             <View style={styles.simpleStatsContainer}>
               <Text style={styles.statTextHeader}>섭취 영양소 정보</Text>
-              
+
               <View style={styles.simpleStatRow}>
                 <Text style={styles.statLabel}>🔥 칼로리</Text>
                 <Text style={styles.statValue}>{selectedDateDetail.calories} kcal</Text>
@@ -574,16 +574,17 @@ const StatisticsScreen = ({ session }) => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    // ⭐️ SafeAreaView에 edges 속성을 추가하여 하단을 제외합니다.
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <View style={styles.tabContainer}>
-        <TouchableOpacity 
-          style={[styles.tabButton, viewMode === 'weekly' ? styles.activeTab : null]} 
+        <TouchableOpacity
+          style={[styles.tabButton, viewMode === 'weekly' ? styles.activeTab : null]}
           onPress={() => setViewMode('weekly')}
         >
           <Text style={[styles.tabText, viewMode === 'weekly' ? styles.activeTabText : null]}>주간 통계</Text>
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.tabButton, viewMode === 'monthly' ? styles.activeTab : null]} 
+        <TouchableOpacity
+          style={[styles.tabButton, viewMode === 'monthly' ? styles.activeTab : null]}
           onPress={() => setViewMode('monthly')}
         >
           <Text style={[styles.tabText, viewMode === 'monthly' ? styles.activeTabText : null]}>월간 통계</Text>
@@ -626,19 +627,19 @@ const styles = StyleSheet.create({
   summaryLabel: { fontSize: 14, color: '#888', marginBottom: 5 },
   summaryValue: { fontSize: 18, fontWeight: 'bold', color: '#333' },
   verticalLine: { width: 1, height: 40, backgroundColor: '#eee' },
-  
+
   card: { backgroundColor: '#fff', borderRadius: 15, padding: 15, marginBottom: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 3 },
   cardTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 15, alignSelf: 'flex-start' },
-  
+
   nutrientBarContainer: { flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginTop: 20, marginBottom: 10 },
   nutrientBarItem: { alignItems: 'center', width: '30%' },
-  nutrientBarLabel: { fontSize: 14, fontWeight: 'bold', marginBottom: 25 }, 
-  barWrapper: { width: 20, height: 120, justifyContent: 'flex-end', alignItems: 'center', marginBottom: 10, position: 'relative' }, 
+  nutrientBarLabel: { fontSize: 14, fontWeight: 'bold', marginBottom: 25 },
+  barWrapper: { width: 20, height: 120, justifyContent: 'flex-end', alignItems: 'center', marginBottom: 10, position: 'relative' },
   barBackground: { width: 20, height: '100%', borderRadius: 10, overflow: 'hidden', position: 'absolute' },
   barFill: { width: '100%', borderRadius: 10 },
-  warningIcon: { 
-    position: 'absolute', 
-    top: -25, 
+  warningIcon: {
+    position: 'absolute',
+    top: -25,
   },
   nutrientBarValue: { fontSize: 11, color: '#555', marginBottom: 2 },
   nutrientBarPercent: { fontSize: 13, fontWeight: 'bold', color: '#555' },
@@ -649,12 +650,12 @@ const styles = StyleSheet.create({
   noDataText: { color: '#aaa', marginTop: 20, marginBottom: 20, textAlign: 'center' },
 
   calendarContainer: { backgroundColor: '#fff', borderRadius: 15, padding: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 3, marginBottom: 20 },
-  chartTitle: { fontSize: 16, fontWeight: 'bold', color: '#555', marginBottom: 15, textAlign: 'center' }, 
+  chartTitle: { fontSize: 16, fontWeight: 'bold', color: '#555', marginBottom: 15, textAlign: 'center' },
   weekRow: { flexDirection: 'row', marginBottom: 5, borderBottomWidth: 1, borderBottomColor: '#eee', paddingBottom: 5 },
   dayHeader: { textAlign: 'center', fontWeight: 'bold', color: '#555', fontSize: 14 },
   daysGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   dayCell: { height: 75, padding: 2, borderBottomWidth: 0.5, borderRightWidth: 0.5, borderColor: '#f0f0f0', alignItems: 'center' },
-  selectedDayCell: { backgroundColor: '#E3F2FD', borderColor: '#007bff', borderWidth: 1 }, 
+  selectedDayCell: { backgroundColor: '#E3F2FD', borderColor: '#007bff', borderWidth: 1 },
   dayCellEmpty: { height: 75 },
   dayNumber: { fontSize: 12, fontWeight: 'bold', color: '#333', marginBottom: 2 },
   cellContent: { alignItems: 'center', justifyContent: 'center', flex: 1 },
@@ -668,7 +669,7 @@ const styles = StyleSheet.create({
     marginTop: 15,
     paddingTop: 15,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0', 
+    borderTopColor: '#f0f0f0',
   },
   additionalNutrientText: {
     fontSize: 14,
@@ -679,9 +680,9 @@ const styles = StyleSheet.create({
     color: '#777',
   },
   simpleStatsContainer: {
-    padding: 10, 
+    padding: 10,
     alignItems: 'center',
-    width: '100%', 
+    width: '100%',
   },
   statTextHeader: {
     fontSize: 16,
@@ -701,7 +702,7 @@ const styles = StyleSheet.create({
   },
   statLabel: { fontSize: 16, color: '#333' },
   statValue: { fontSize: 16, fontWeight: 'bold', color: '#007bff' },
-  
+
   viewRowHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
