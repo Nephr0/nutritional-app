@@ -9,14 +9,12 @@ import MealLogger from './MealLogger';
 import ProfileScreen from './ProfileScreen';
 import EditProfileScreen from './EditProfileScreen';
 import StatisticsScreen from './StatisticsScreen';
-// ⭐️ [신규] AIRecommendationScreen import
 import AIRecommendationScreen from './AIRecommendationScreen';
 
 const Tab = createBottomTabNavigator();
 const ProfileStack = createNativeStackNavigator();
 
 function ProfileStackScreen({ session }) {
-  // ... (기존 코드와 동일)
   return (
     <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
       <ProfileStack.Screen name="프로필 메인">
@@ -38,8 +36,7 @@ const MainTabNavigator = ({ session }) => {
 
           if (route.name === '식단 기록') {
             iconName = focused ? 'restaurant' : 'restaurant-outline';
-          } else if (route.name === 'AI 코칭') { // ⭐️ AI 탭 아이콘 설정
-            // ✨ 반짝이는 느낌의 아이콘 사용 (또는 chatbubble-ellipses 등 원하는 것으로 변경 가능)
+          } else if (route.name === 'AI 코칭') { 
             iconName = focused ? 'sparkles' : 'sparkles-outline';
           } else if (route.name === '통계') {
             iconName = focused ? 'stats-chart' : 'stats-chart-outline';
@@ -58,8 +55,7 @@ const MainTabNavigator = ({ session }) => {
         {props => <MealLogger {...props} session={session} />}
       </Tab.Screen>
 
-      {/* ⭐️ [신규] AI 탭 추가 (식단 기록과 통계 사이) */}
-      <Tab.Screen name="AI 코칭" options={{ title: 'AI 코칭' }}>
+      <Tab.Screen name="AI 코칭" options={{ title: 'AI 영양사' }}>
         {props => <AIRecommendationScreen {...props} session={session} />}
       </Tab.Screen>
 

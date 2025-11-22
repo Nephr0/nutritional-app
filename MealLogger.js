@@ -5,7 +5,7 @@ import {
   View,
   Text,
   TextInput,
-  Button, // eslint-disable-line no-unused-vars
+  Button, 
   StyleSheet,
   FlatList,
   Alert,
@@ -18,18 +18,12 @@ import {
 } from 'react-native';
 import axios from 'axios';
 import { supabase } from './supabaseClient';
-// eslint-disable-next-line no-unused-vars
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-// ⭐️ [삭제] GoogleGenerativeAI import 제거
-// import { GoogleGenerativeAI } from "@google/generative-ai";
 import DateTimePicker from '@react-native-community/datetimepicker';
 
-// ⭐️ [삭제] 클라이언트 측 API 키 정의 제거
-// const GEMINI_API_KEY = '';
 
-// 두 날짜 객체가 같은 날인지 확인하는 유틸리티 함수
 const isSameDay = (date1, date2) => {
   return (
     date1.getFullYear() === date2.getFullYear() &&
@@ -53,18 +47,15 @@ const MEAL_TYPES = [
 ];
 
 const MealLogger = ({ session }) => {
-  // ... (기존 state들은 그대로 유지)
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
   const [logs, setLogs] = useState([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
-  // eslint-disable-next-line no-unused-vars
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [mealType, setMealType] = useState('breakfast');
   
   const [modalVisible, setModalVisible] = useState(false);
-  // modalMode: 'search', 'adjust', 'my_foods', 'favorites', 'ai_image', 'ai_text', 'view_details'
   const [modalMode, setModalMode] = useState('search'); 
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -89,10 +80,8 @@ const MealLogger = ({ session }) => {
 
   const [adjustPurpose, setAdjustPurpose] = useState('log_meal');
 
-  // 상세 보기를 위해 선택된 식단 기록 저장용 상태
   const [selectedLogToView, setSelectedLogToView] = useState(null);
 
-  // ... (기존 함수들 그대로 유지: onChangeDate, formatDateMMDD, prevDateObj, nextDateObj, fetchData, handleDeleteMeal, handleOpenLogDetails, handlePrevDay, handleNextDay)
 
   const onChangeDate = (event, selected) => {
     const currentDate = selected || selectedDate;
@@ -102,7 +91,6 @@ const MealLogger = ({ session }) => {
   
   useEffect(() => {
     fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate]);
 
   const formatDateMMDD = (date) => {
@@ -174,14 +162,6 @@ const MealLogger = ({ session }) => {
   };
 
   const handleNutritionScan = async () => {
-    // ⭐️ [삭제] API 키 체크 로직 제거
-    /*
-    if (!GEMINI_API_KEY || GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY') {
-      Alert.alert("설정 오류", "Gemini API 키를 설정해주세요.");
-      return;
-    }
-    */
-
     Alert.alert("영양성분표 입력", "사진을 어떻게 가져올까요?", [
       {
         text: "카메라 촬영",
@@ -224,12 +204,6 @@ const MealLogger = ({ session }) => {
   const analyzeImageWithGemini = async (base64Image) => {
     setIsAnalyzing(true);
     try {
-      // ⭐️ [삭제] Gemini 직접 호출 코드 제거
-      /*
-      const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
-      */
-
       const prompt = `
         Analyze this image of a nutrition facts label.
         Extract the following information and return ONLY a JSON object. Use 0 if info is not present.
@@ -250,20 +224,6 @@ const MealLogger = ({ session }) => {
         Output format raw JSON: {"food_name": "...", "calories": 0, "carbs": 0, "protein": 0, "fat": 0, "sugar": 0, "fiber": 0, "saturated_fat": 0, "trans_fat": 0, "cholesterol": 0, "sodium": 0, "potassium": 0, "serving_size": "..."}
       `;
 
-      // ⭐️ [삭제] Gemini 직접 호출 코드 제거
-      /*
-      const imagePart = {
-        inlineData: {
-          data: base64Image,
-          mimeType: "image/jpeg",
-        },
-      };
-
-      const result = await model.generateContent([prompt, imagePart]);
-      const responseText = result.response.text();
-      */
-
-      // ⭐️ [신규] Supabase Edge Function 호출
       const { data, error } = await supabase.functions.invoke('gemini-ai', {
         body: {
           type: 'image_analysis', // 요청 유형 지정
@@ -318,12 +278,6 @@ const MealLogger = ({ session }) => {
 
     setIsAnalyzing(true);
     try {
-      // ⭐️ [삭제] Gemini 직접 호출 코드 제거
-      /*
-      const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
-      */
-
       const prompt = `
         Analyze this food description: "${aiSearchText}".
         Estimate the portion size in grams and detailed nutritional content based on general data.
@@ -346,13 +300,6 @@ const MealLogger = ({ session }) => {
         Output raw JSON example: {"food_name": "피자", "calories": 500, "carbs": 60, "protein": 20, "fat": 25, "sugar": 5, "fiber": 2, "saturated_fat": 10, "trans_fat": 0.5, "cholesterol": 30, "sodium": 800, "potassium": 200, "serving_size": "2조각"}
       `;
 
-      // ⭐️ [삭제] Gemini 직접 호출 코드 제거
-      /*
-      const result = await model.generateContent(prompt);
-      const responseText = result.response.text();
-      */
-
-      // ⭐️ [신규] Supabase Edge Function 호출
       const { data, error } = await supabase.functions.invoke('gemini-ai', {
         body: {
           type: 'text_analysis', // 요청 유형 지정
@@ -396,8 +343,6 @@ const MealLogger = ({ session }) => {
       setIsAnalyzing(false);
     }
   };
-
-  // ... (이후 handleSearchFood부터 끝까지 기존 코드와 완전히 동일합니다)
 
   const handleSearchFood = async (query) => {
     setSearchQuery(query);
@@ -555,7 +500,6 @@ const MealLogger = ({ session }) => {
         protein: Math.round(selectedFood.protein * multiplier),
         carbs: Math.round(selectedFood.carbs * multiplier),
         fat: Math.round(selectedFood.fat * multiplier),
-        // ⭐️ 추가된 상세 영양소 저장 (반올림)
         sugar: Math.round((selectedFood.sugar || 0) * multiplier),
         fiber: Math.round((selectedFood.fiber || 0) * multiplier),
         saturated_fat: Math.round((selectedFood.saturated_fat || 0) * multiplier),
@@ -626,7 +570,6 @@ const MealLogger = ({ session }) => {
   const openCustomFoodModal = (food = null) => {
     if (food) {
       setSelectedFood({ ...food });
-      // ⭐️ 상세 영양소 필드가 없는 경우를 대비해 초기화
       setSelectedFood(prev => ({
         ...prev,
         calories: parseFloat(prev.calories) || 0,
@@ -643,7 +586,6 @@ const MealLogger = ({ session }) => {
       }));
       setAdjustPurpose('update_custom');
     } else {
-      // ⭐️ 새 메뉴 추가 시 모든 영양소 0으로 초기화
       setSelectedFood({
         id: Date.now().toString(),
         food_name: '',
@@ -661,7 +603,6 @@ const MealLogger = ({ session }) => {
   };
 
   const openDirectInputModal = () => {
-    // ⭐️ 직접 입력 시 모든 영양소 0으로 초기화
     setSelectedFood({
       id: Date.now().toString(),
       food_name: '',
@@ -802,7 +743,6 @@ const MealLogger = ({ session }) => {
   const totalProtein = logs.reduce((sum, log) => sum + (log.protein || 0), 0);
   const totalCarbs = logs.reduce((sum, log) => sum + (log.carbs || 0), 0);
   const totalFat = logs.reduce((sum, log) => sum + (log.fat || 0), 0);
-  // ⭐️ 당류, 나트륨 총합 계산 추가
   const totalSugar = logs.reduce((sum, log) => sum + (log.sugar || 0), 0);
   const totalSodium = logs.reduce((sum, log) => sum + (log.sodium || 0), 0);
 
@@ -886,7 +826,6 @@ const MealLogger = ({ session }) => {
       }
 
       return (
-        // ⭐️ 바깥쪽 메인 ScrollView
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingBottom: 50 }}>
           {selectedFood.image && (
             <Image 
@@ -918,20 +857,13 @@ const MealLogger = ({ session }) => {
 
           <View style={styles.adjustedStatsWrapper}>
             {isEditingNutrients ? (
-              // -----------------------------------------------------
-              // ⭐️ 상세 보기 및 수정 모드
-              // -----------------------------------------------------
-              // ⭐️ [수정] 다시 ScrollView로 변경하고 nestedScrollEnabled 추가
-              // styles.detailedStatsContainer에 정의된 maxHeight(350) 내에서 스크롤됩니다.
               <ScrollView 
                 style={styles.detailedStatsContainer} 
-                nestedScrollEnabled={true} // ⭐️ 중요: 내부 스크롤 우선 활성화
+                nestedScrollEnabled={true} 
                 showsVerticalScrollIndicator={true}
               >
                 <Text style={styles.statTextHeader}>상세 영양소 수정 (1인분 기준)</Text>
                 
-                {/* --- 입력 필드들 (기존과 동일) --- */}
-                {/* 칼로리 */}
                 <View style={styles.editRowMain}>
                   <Text style={styles.editLabelMain}>🔥 칼로리 (kcal)</Text>
                   <TextInput style={styles.editInput} value={String(selectedFood.calories)} onChangeText={(t) => updateSelectedFood('calories', t)} keyboardType="numeric"/>
@@ -1141,7 +1073,6 @@ const MealLogger = ({ session }) => {
       );
     }
 
-    // ⭐️ [수정] 식단 기록 상세 보기 모달 UI (계층 구조 및 선 위치 변경)
     if (modalMode === 'view_details' && selectedLogToView) {
       const item = selectedLogToView;
       return (
@@ -1155,24 +1086,17 @@ const MealLogger = ({ session }) => {
               <View style={styles.simpleStatRow}><Text style={styles.statLabel}>🔥 칼로리</Text><Text style={styles.statValue}>{item.calories} kcal</Text></View>
 
               {/* 탄수화물 그룹 */}
-              {/* ⭐️ 스타일 변경: simpleStatRow -> viewRowHeader (선 제거) */}
               <View style={styles.viewRowHeader}><Text style={styles.statLabel}>🍚 탄수화물</Text><Text style={styles.statValue}>{item.carbs} g</Text></View>
               <View style={styles.viewRowSub}><Text style={styles.viewLabelSub}>- 당</Text><Text style={styles.viewValueSub}>{item.sugar || 0} g</Text></View>
-              {/* ⭐️ 스타일 변경: viewRowSub -> viewRowSubLast (선 추가) */}
               <View style={styles.viewRowSubLast}><Text style={styles.viewLabelSub}>- 식이섬유</Text><Text style={styles.viewValueSub}>{item.fiber || 0} g</Text></View>
 
               {/* 단백질 */}
               <View style={styles.simpleStatRow}><Text style={styles.statLabel}>🥩 단백질</Text><Text style={styles.statValue}>{item.protein} g</Text></View>
 
               {/* 지방 그룹 */}
-              {/* ⭐️ 스타일 변경: simpleStatRow -> viewRowHeader (선 제거) */}
               <View style={styles.viewRowHeader}><Text style={styles.statLabel}>🥑 지방</Text><Text style={styles.statValue}>{item.fat} g</Text></View>
               <View style={styles.viewRowSub}><Text style={styles.viewLabelSub}>- 포화지방</Text><Text style={styles.viewValueSub}>{item.saturated_fat || 0} g</Text></View>
-              {/* ⭐️ 스타일 변경: viewRowSub -> viewRowSubLast (선 추가) */}
               <View style={styles.viewRowSubLast}><Text style={styles.viewLabelSub}>- 트랜스지방</Text><Text style={styles.viewValueSub}>{item.trans_fat || 0} g</Text></View>
-
-              {/* ⭐️ [삭제] 중복된 구분선 제거 */}
-              {/* <View style={styles.separator} /> */}
 
               {/* 기타 영양소 */}
               <View style={styles.simpleStatRow}><Text style={styles.statLabel}>🥚 콜레스테롤</Text><Text style={styles.statValue}>{item.cholesterol || 0} mg</Text></View>
@@ -1235,7 +1159,6 @@ const MealLogger = ({ session }) => {
             </View>
 
             <View style={{flexDirection:'row', justifyContent:'flex-start', width:'100%'}}>
-              {/* 빈 공간 */}
             </View>
           </View>
         ) : (
@@ -1342,7 +1265,7 @@ const MealLogger = ({ session }) => {
             <View style={[styles.progressBar, { width: `${progressPercent}%`, backgroundColor: progressBarColor }]} />
           </View>
 
-          {/* ⭐️ 주요 3대 영양소 (기존 유지) */}
+          {/* ⭐️ 주요 3대 영양소 */}
           <View style={styles.macroSummary}>
             <View style={styles.macroItem}>
               <Text style={styles.macroLabel}>탄수화물</Text>
@@ -1358,12 +1281,11 @@ const MealLogger = ({ session }) => {
             </View>
           </View>
 
-          {/* ⭐️ [추가] 당류 및 나트륨 표시 영역 */}
+          {/* ⭐️ 당류 및 나트륨 표시 영역 */}
           <View style={styles.additionalMacroSummarySingleLine}>
             <Text style={styles.additionalMacroText}>
               당류 <Text style={styles.additionalMacroValue}>{totalSugar}g</Text>
             </Text>
-            {/* ⭐️ 구분선 제거하고, 두 번째 항목에 직접 마진 적용 */}
             <Text style={[styles.additionalMacroText, { marginLeft: 40 }]}>
               나트륨 <Text style={styles.additionalMacroValue}>{totalSodium}mg</Text>
             </Text>
@@ -1695,30 +1617,27 @@ const styles = StyleSheet.create({
     width: '100%',
     marginVertical: 15,
   },
-  // ⭐️ [추가] 상세 보기 모달의 계층 구조 스타일
   viewRowHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
-    marginBottom: 4, // 하단 여백을 줄여 하위 항목과 가깝게
-    // borderBottom 속성 제거
+    marginBottom: 4, 
   },
   viewRowSub: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
     marginBottom: 6,
-    paddingLeft: 20, // 들여쓰기
+    paddingLeft: 20, 
   },
-  // ⭐️ [추가] 그룹의 마지막 하위 항목 스타일 (선 추가)
   viewRowSubLast: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
     marginBottom: 8,
     paddingBottom: 8,
-    paddingLeft: 20, // 들여쓰기 유지
-    borderBottomWidth: 1, // 선 추가
+    paddingLeft: 20, 
+    borderBottomWidth: 1, 
     borderBottomColor: '#f5f5f5',
   },
   viewLabelSub: {
@@ -1737,7 +1656,7 @@ const styles = StyleSheet.create({
     marginTop: 15,
     paddingTop: 15,
     borderTopWidth: 1,
-    borderTopColor: '#ffffff', // 구분선 색상을 조금 더 연하게 변경
+    borderTopColor: '#ffffff',
   },
   additionalMacroText: {
     fontSize: 14,

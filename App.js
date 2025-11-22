@@ -7,7 +7,6 @@ import { supabase } from './supabaseClient';
 import Auth from './Auth';
 import MainTabNavigator from './MainTabNavigator';
 
-// ⭐️ [신규] NavigationContainer import
 import { NavigationContainer } from '@react-navigation/native';
 
 export default function App() {
@@ -23,7 +22,7 @@ export default function App() {
     supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (_event === 'SIGNED_OUT') {
-        setLoading(false); // 로그아웃 시 로딩 상태 해제
+        setLoading(false);
       }
     });
   }, []);
@@ -37,7 +36,6 @@ export default function App() {
   }
 
   return (
-    // ⭐️ [수정] MainTabNavigator를 NavigationContainer로 감싸기
     <NavigationContainer>
       {session && session.user ? (
         <MainTabNavigator session={session} />

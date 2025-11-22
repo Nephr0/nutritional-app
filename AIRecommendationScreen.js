@@ -12,16 +12,11 @@ import {
   Modal,
   ScrollView,
 } from 'react-native';
-// ⭐️ SafeAreaView 사용 (하단 제외 설정을 위해)
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from './supabaseClient';
-// ⭐️ [완전 삭제] GoogleGenerativeAI import 제거
-// import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 
-// ⭐️ [완전 삭제] 클라이언트 측 API 키 정의 자체를 제거해야 합니다.
-// const GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY';  <-- 이 줄이 아예 없어야 합니다.
 
 const AIRecommendationScreen = ({ session }) => {
   const [loadingData, setLoadingData] = useState(true);
@@ -98,7 +93,6 @@ const AIRecommendationScreen = ({ session }) => {
       setTodaySummary(summary);
 
     } catch (error) {
-      // console.error("오늘 데이터 로딩 오류:", error);
     } finally {
       setLoadingData(false);
     }
@@ -117,7 +111,6 @@ const AIRecommendationScreen = ({ session }) => {
       if (error) throw error;
       setHistoryList(data || []);
     } catch (error) {
-      // console.error("히스토리 불러오기 오류:", error.message);
     }
   };
 
@@ -178,14 +171,6 @@ const AIRecommendationScreen = ({ session }) => {
         return;
     }
     
-    // ⭐️⭐️⭐️ [핵심 수정] 아래의 API 키 검사 로직을 완전히 삭제했습니다. ⭐️⭐️⭐️
-    /*
-    if (!GEMINI_API_KEY || GEMINI_API_KEY.includes('YOUR_GEMINI_API_KEY')) {
-      Alert.alert("설정 오류", "AIRecommendationScreen.js 파일에 GEMINI_API_KEY를 설정해주세요.");
-      return;
-    }
-    */
-
     setAnalyzing(true);
     try {
       const remaining = {

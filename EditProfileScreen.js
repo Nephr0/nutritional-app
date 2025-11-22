@@ -9,7 +9,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 const EditProfileScreen = ({ route, navigation, session }) => {
   const { profileData } = route.params;
 
-  // ⭐️ 여기서 activityLevel 상태 변수가 선언됩니다.
   const [gender, setGender] = useState(profileData?.gender || 'male');
   const [age, setAge] = useState(profileData?.age?.toString() || '');
   const [height, setHeight] = useState(profileData?.height?.toString() || '');
@@ -25,7 +24,7 @@ const EditProfileScreen = ({ route, navigation, session }) => {
     const cw = parseFloat(currentWeight);
     const gw = parseFloat(goalWeight);
     const a = parseInt(age);
-    const act = parseFloat(activityLevel); // ⭐️ 여기서도 올바르게 사용됩니다.
+    const act = parseFloat(activityLevel); 
 
     if (!h || !cw || !gw || !a) {
       Alert.alert('입력 오류', '모든 정보를 올바르게 입력해주세요.');
@@ -103,7 +102,6 @@ const EditProfileScreen = ({ route, navigation, session }) => {
   };
 
   return (
-    // ⭐️ SafeAreaView에 edges 속성을 추가하여 하단을 제외합니다.
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 50 }}>
         <Text style={styles.header}>프로필 정보 수정</Text>
@@ -182,7 +180,6 @@ const EditProfileScreen = ({ route, navigation, session }) => {
         <View style={styles.inputGroup}>
           <Text style={styles.label}>활동량</Text>
           <View style={styles.pickerContainer}>
-            {/* ⭐️ 여기서 activityLevel 상태 변수가 사용됩니다. */}
             <Picker
               selectedValue={activityLevel}
               onValueChange={(itemValue) => setActivityLevel(itemValue)}
@@ -206,7 +203,6 @@ const EditProfileScreen = ({ route, navigation, session }) => {
           </TouchableOpacity>
         </View>
 
-        {/* ⭐️ 하단 여백 추가 */}
         <View style={{ height: 20 }} />
       </ScrollView>
     </SafeAreaView>

@@ -58,7 +58,6 @@ const ProfileScreen = ({ session, navigation }) => {
     );
   };
 
-  // ⭐️ [수정] 활동량 텍스트 변경 (숫자를 텍스트로)
   const getActivityLevelText = (level) => {
     const levelNum = parseFloat(level);
     if (levelNum === 1.2) return '매우 적음';
@@ -87,7 +86,6 @@ const ProfileScreen = ({ session, navigation }) => {
   }
 
   return (
-    // ⭐️ SafeAreaView에 edges 속성을 추가하여 하단을 제외합니다.
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
         <Text style={styles.header}>내 프로필</Text>
@@ -133,7 +131,6 @@ const ProfileScreen = ({ session, navigation }) => {
           
           <View style={styles.divider} />
           
-          {/* ⭐️ [수정] 레이아웃 순서 변경 */}
           <View style={styles.macroContainer}>
             <Text style={styles.macroTitle}>일일 권장 섭취량</Text>
             
@@ -173,7 +170,6 @@ const ProfileScreen = ({ session, navigation }) => {
           <Text style={styles.buttonText}>로그아웃</Text>
         </TouchableOpacity>
 
-        {/* ⭐️ 하단 여백 추가 */}
         <View style={{ height: 20 }} />
       </ScrollView>
     </SafeAreaView>
@@ -257,12 +253,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#777',
     textAlign: 'center',
-    marginBottom: 15, // 간격 조정
+    marginBottom: 15, 
   },
   macroRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginTop: 15, // 간격 조정
+    marginTop: 15, 
   },
   macroItem: {
     alignItems: 'center',

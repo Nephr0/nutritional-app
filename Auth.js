@@ -4,13 +4,13 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context'; 
 import { supabase } from './supabaseClient';
-import SignUpScreen from './SignUpScreen'; // ⭐️ SignUpScreen import
+import SignUpScreen from './SignUpScreen'; // SignUpScreen import
 
 const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  // ⭐️ 화면 전환을 위한 상태 (false: 로그인, true: 회원가입)
+  // 화면 전환을 위한 상태 (false: 로그인, true: 회원가입)
   const [isSignUpMode, setIsSignUpMode] = useState(false);
 
   const handleSignIn = async () => {
@@ -23,12 +23,12 @@ const Auth = () => {
     setLoading(false);
   };
 
-  // ⭐️ 회원가입 모드라면 SignUpScreen 컴포넌트를 반환
+  // 회원가입 모드라면 SignUpScreen 컴포넌트를 반환
   if (isSignUpMode) {
     return <SignUpScreen onGoBack={() => setIsSignUpMode(false)} />;
   }
 
-  // ⭐️ 로그인 모드 (기본 화면)
+  // 로그인 모드 (기본 화면)
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.contentContainer}>

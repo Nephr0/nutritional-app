@@ -574,7 +574,6 @@ const StatisticsScreen = ({ session }) => {
   };
 
   return (
-    // ⭐️ SafeAreaView에 edges 속성을 추가하여 하단을 제외합니다.
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <View style={styles.tabContainer}>
         <TouchableOpacity
