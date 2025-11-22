@@ -26,7 +26,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 // ⭐️ [필수] 여기에 Google AI Studio에서 발급받은 키를 넣으세요
-const GEMINI_API_KEY = 'AIzaSyCJoPj5ERuQ0Sf_AnjIMAXRkCy9yN7GvuM';
+const GEMINI_API_KEY = '';
 
 // 두 날짜 객체가 같은 날인지 확인하는 유틸리티 함수
 const isSameDay = (date1, date2) => {
