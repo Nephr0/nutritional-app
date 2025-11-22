@@ -193,7 +193,8 @@ const StatisticsScreen = ({ session }) => {
       const goal = profileData?.goal_calories || 0;
       if (goal > 0) {
         Object.values(dailyMap).forEach(cal => {
-          if (cal > 0 && cal <= goal * 1.1) success++;
+          // ⭐️ 목표 달성 기준 (80% ~ 110%)
+          if (cal >= goal * 0.8 && cal <= goal * 1.1) success++;
         });
       }
       setSuccessDays(success);
@@ -454,7 +455,7 @@ const StatisticsScreen = ({ session }) => {
               const percent = goalCalories > 0 ? Math.round((intake / goalCalories) * 100) : 0;
 
               let percentColor = '#888';
-              if (percent >= 80 && percent <= 100) {
+              if (percent >= 80 && percent <= 110) {
                 percentColor = '#007bff';
               } else if (percent > 100) {
                 percentColor = '#F44336';
